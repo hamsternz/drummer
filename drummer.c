@@ -8,7 +8,7 @@
 #include "samples/drum_perc.h"
 #include "samples/drum_snare.h"
 
-#define N_VOICES 5
+#define N_VOICES 6
 
 #define BPM           155
 #define SAMPLE_RATE 44100
@@ -22,20 +22,22 @@ const struct voice {
     const int16_t *samples;
     const size_t  len;
 } voices[N_VOICES] = {
-   { 16,  256, drum_kick,  sizeof(drum_kick)/sizeof(int16_t)},
-   {  8,   32, drum_clap,  sizeof(drum_clap)/sizeof(int16_t)},
-   { 16,  128, drum_snare, sizeof(drum_snare)/sizeof(int16_t)},
-   { 24,   64, drum_hihat, sizeof(drum_hihat)/sizeof(int16_t)},
-   { 16,   32, drum_perc,  sizeof(drum_perc)/sizeof(int16_t)}
+   { 16,  128, drum_kick,  sizeof(drum_kick)/sizeof(int16_t)},
+   {  8,    0, drum_clap,  sizeof(drum_clap)/sizeof(int16_t)},
+   { 16,   20, drum_snare, sizeof(drum_snare)/sizeof(int16_t)},
+   { 18,   60, drum_hihat, sizeof(drum_hihat)/sizeof(int16_t)},
+   { 28,   30, drum_perc, sizeof(drum_perc)/sizeof(int16_t)},
+   {  4,   30, drum_perc, sizeof(drum_perc)/sizeof(int16_t)}
 };
 
 char patterns[N_VOICES][BAR_LEN] = {
 //"012345678901234567890123456789012345678901234567890123456789012345678901"
-  "1                                   1                                   ",
-  "         1                                   1                 1        ",
+  "9                                   1                                   ",
+  "         1                 1                 1                 1        ",
   "1                 1                 1                 1                 ",
-  "         1                 1                                            ",
-  "                                                                        "
+  "5        1        1        1        1        1                 1        ",
+  "5                          1                 1                          ",
+  "         1                          4                          1        "
 };
 
 
@@ -58,6 +60,7 @@ struct WaveFileHeader {
 };
 
 int voicestate[N_VOICES];
+int voiceemph[N_VOICES];
 
 void intToU4(uint8_t *d, int val) {
    d[0] = val;
@@ -111,6 +114,7 @@ void generate_sample(FILE *f) {
       for(int i = 0; i < N_VOICES; i++) {
          if(patterns[i][tickOfBar] != ' ') {
             voicestate[i] = 1;
+            voiceemph[i] = (patterns[i][tickOfBar]-'1') * 12;
          }
       }
    }
@@ -128,8 +132,9 @@ void generate_sample(FILE *f) {
    output[0] = 0;
    output[1] = 0;
    for(int i = 0; i < N_VOICES; i++) {
-      output[0] += voices[i].volume * samples[i]*(voices[i].pan);
-      output[1] += voices[i].volume * samples[i]*(32-voices[i].pan);
+      int vol = voiceemph[i] + voices[i].volume;
+      output[0] += vol * samples[i]*(voices[i].pan);
+      output[1] += vol * samples[i]*(32-voices[i].pan);
    }
 
    sampleOfTick++;
